@@ -30,7 +30,7 @@ import java.util.concurrent.BlockingQueue;
  * Created by ffiorett on 7/14/15.
  */
 public class StatisticsDeamon extends ComAgent {
-    BlockingQueue<ComAgent> watched = new ArrayBlockingQueue<ComAgent>(10000);
+    BlockingQueue<ComAgent> watched = new ArrayBlockingQueue<ComAgent>(500);
 
     private long simulatedTimeMillisec;
     private long totSentMessages;

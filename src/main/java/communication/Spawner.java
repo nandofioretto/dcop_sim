@@ -58,26 +58,24 @@ public class Spawner {
      * creates their dependencies.
      */
     public void spawn(List<Object> algParameters) {
+        int nbIterations = (int)algParameters.get(1);
 
         // Spawn the Statistics collector Deamon
         final ComAgent statsCollector = new StatisticsDeamon(spawnedAgentStates.size());
-        statsCollector.start();
+        statsCollector.run();
+
+        // todo: To enforce synchronicity: If an agent a_i has terminated its cycle, remove it from the pool of agents
+        // onto which iterate (or have a special state -- STOPPED / PAUSED / AWAITING).
+        // Add all agents back to the pool when the cycle is terminated for all agents (or set their state back to RUNNING)
         DCOPinfo.cycleTickerDeamon = new CycleTickerDeamon(spawnedAgentStates);
 
-
         // Spawns agents and start the DCOP algorithm
+        // @note: This is fine
         for (AgentState agtState : spawnedAgentStates) {
-
-//            for (AgentState neighbor : agtState.getNeighbors()) {
-//                DCOPagent neighborAgt = yellowPages.get(neighbor.getName());
-//                neighbor.setComAgent(neighborAgt);
-//            }
-
             DCOPagent agt = AgentFactory.create(statsCollector, agtState, algParameters);
             DCOPinfo.agentsRef.put(agt.getId(), agt);
             yellowPages.put(agtState.getName(), agt);
-
-            agt.start();
+            agt.run();
         }
 
         // Save leader AgentRef
@@ -98,9 +96,12 @@ public class Spawner {
             actor.tell(new Message.RegisterLeader(yellowPages.get(leaderName)), ComAgent.noSender());
         }
 
-        // Wait some time for discovery phase
-        try {Thread.sleep(DCOPinfo.nbAgents * 50);} catch (InterruptedException e) {e.printStackTrace();}
+        for (AgentState agtState : this.spawnedAgentStates) {
+            DCOPagent agt = yellowPages.get(leaderName);
+            agt.run();
+        }
 
+        // Discovery phase is over. Construct ordering
         constructOrdering();
 
         // Signals start to all agents
@@ -109,15 +110,13 @@ public class Spawner {
             actor.tell(new Message.StartSignal(), ComAgent.noSender());
         }
 
-        // System awaits termination
-        try {
+        while(DCOPinfo.cycleTickerDeamon.getCurrentCycle() < 20) {
             for (DCOPagent agt : yellowPages.values()) {
-                agt.join();
+                agt.run();
             }
-            statsCollector.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
+
+        //statsCollector.join();
     }
 
     public Collection<DCOPagent> getSpawnedAgents() {

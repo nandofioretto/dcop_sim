@@ -1,11 +1,9 @@
 package communication;
 
-import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import kernel.AgentState;
 import kernel.AgentView;
 import kernel.Constants;
 import kernel.DCOPinfo;
-import sun.management.Agent;
 
 import java.util.*;
 
@@ -25,17 +23,16 @@ public class CycleTickerDeamon /*extends ComAgent*/ {
     }
 
     public synchronized void terminateAgentCycle(ComAgent agent) {
-        //System.out.println(agent.getName() + " Terminating current cycle");
         AgentView agentView = DCOPinfo.agentsRef.get(agent.getId()).getAgentView();
         agent.getAgentStatistics().updateIterationStats(agentView);
-        // System.out.println(agent.getAgentStatistics().getSolutionValue());
         agent.setAgtState(ComAgent.STOPPED);
         agentsTerminatedCurrentCycle.set((int)agent.getId());
         if (agentsTerminatedCurrentCycle.cardinality() == nbAgents)
         {
             // compute cost
             System.out.println("Cycle: " + currentCycle);
-            //DCOPinfo.leaderAgent.getAgentStatistics().setSolutionCostIter(getProblemCost());
+            //DCOPinfo.leaderAgent.getAgentStatistics().setSolutionCostIter(getProblemCost())
+            System.out.println(getProblemCost());
             currentCycle ++;
             agentsTerminatedCurrentCycle.clear();
 

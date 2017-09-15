@@ -22,11 +22,7 @@
 
 package communication;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.*;
 
 /**
  * Created by ffiorett on 7/17/15.
@@ -35,40 +31,52 @@ import java.util.concurrent.BlockingQueue;
  * Each DCOP agent should extend from this class or one of its subclasses,
  * as it contains the messageStatistics.
  */
-public abstract class ComAgent extends Thread { //implements Runnable {
+public abstract class ComAgent {
 
     private long agentID; // ID of the agent starting from 0
     private List<ComAgent> neighborsRef;
     private HashMap<Long, ComAgent> neigbhorRefByID;
     private ComAgent leaderRef = null;
     private AgentStatistics agentStatistics;
-    private BlockingQueue<TrackableObject> mailbox;
+    private Queue<TrackableObjectSim> mailbox;
+    protected static int HEATUP = -1;
     protected static int RUNNING = 0;
     protected static int STOPPED = 1;
     protected static int TERMINATED = 2;
     private int state;
 
-    //String name;
+    String name;
 
     public ComAgent(String name, long agentID) {
-        super.setName(name);
+        this.name = name;
         this.agentID = agentID;
         this.neighborsRef = new ArrayList<ComAgent>();
         this.neigbhorRefByID = new HashMap<Long, ComAgent>();
         this.agentStatistics = new AgentStatistics();
-        this.mailbox = new ArrayBlockingQueue<TrackableObject>(10000);
+        this.mailbox = new LinkedList<>();
         agentStatistics.getStopWatch().start();
-        this.state = RUNNING;
+        this.state = HEATUP;
     }
 
-    @Override
     public void run() {
-        preStart();
-        while (!terminationCondition()) {
-            if (state == RUNNING)
-                await();
+        if (state == HEATUP) {
+            // preStart only if first time
+            preStart();
+            state = RUNNING;
         }
-        preStop();
+
+        if (!terminationCondition()) {
+            if (state == RUNNING) {
+                processMail();
+            }
+        } else {
+            // enter here only when terminated
+            preStop();
+        }
+    }
+
+    public String getName() {
+        return name;
     }
 
     protected abstract boolean terminationCondition();
@@ -105,12 +113,10 @@ public abstract class ComAgent extends Thread { //implements Runnable {
      */
     public void tell(Object message, ComAgent sender) {
         try {
-            
             String sName = sender == null ? "none" : sender.getName();
             //System.out.println(sName + " sending " + message.toString() + " to " + getName());
-
-            mailbox.put(new TrackableObject(message, sender));
-        } catch (InterruptedException e) {
+            mailbox.add(new TrackableObjectSim(message, sender));
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -126,8 +132,8 @@ public abstract class ComAgent extends Thread { //implements Runnable {
         if (message.isTrackable())
             message.setSimulatedNanoTime(sender.getAgentStatistics().getStopWatch().getNanoTime());
         try {
-            mailbox.put(new TrackableObject(message, sender));
-        } catch (InterruptedException e) {
+            mailbox.add(new TrackableObjectSim(message, sender));
+        } catch (Exception e) {
             e.printStackTrace();
         }
         if (message.isTrackable())
@@ -138,22 +144,21 @@ public abstract class ComAgent extends Thread { //implements Runnable {
 
     /**
      * Awaits while checking if the message queue is non empty. In which case, it process the message.
+     * todo: Ensure agent does not send message to itself.
+     * todo: In case this is not possible, we need to count the number of messages when we enter in this function,
+     * todo: and process only such count of messages.
      */
-    public void await() {
-        agentStatistics.getStopWatch().suspend();
-
-        if (mailbox.isEmpty()) {
-            Thread.yield();
-        } else {
+    public void processMail() {
+        agentStatistics.getStopWatch().resume();
+        while (!mailbox.isEmpty()) {
             try {
-                TrackableObject to = mailbox.take();
-
-                agentStatistics.getStopWatch().resume();
+                TrackableObjectSim to = mailbox.remove();
                 onReceive(to.getObject(), to.getTrack());
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+        agentStatistics.getStopWatch().suspend();
     }
 
     public ComAgent getSelf() {
@@ -163,7 +168,6 @@ public abstract class ComAgent extends Thread { //implements Runnable {
     /**
      * Overrides the Thread ID method to return the agent ID
      */
-    @Override
     public long getId() {
         return agentID;
     }
