@@ -38,7 +38,7 @@ public abstract class ComAgent {
     private HashMap<Long, ComAgent> neigbhorRefByID;
     private ComAgent leaderRef = null;
     private AgentStatistics agentStatistics;
-    private Queue<TrackableObjectSim> mailbox;
+    private Queue<TrackableObject> mailbox;
     protected static int HEATUP = -1;
     protected static int RUNNING = 0;
     protected static int STOPPED = 1;
@@ -115,7 +115,7 @@ public abstract class ComAgent {
         try {
             String sName = sender == null ? "none" : sender.getName();
             //System.out.println(sName + " sending " + message.toString() + " to " + getName());
-            mailbox.add(new TrackableObjectSim(message, sender));
+            mailbox.add(new TrackableObject(message, sender));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -132,7 +132,7 @@ public abstract class ComAgent {
         if (message.isTrackable())
             message.setSimulatedNanoTime(sender.getAgentStatistics().getStopWatch().getNanoTime());
         try {
-            mailbox.add(new TrackableObjectSim(message, sender));
+            mailbox.add(new TrackableObject(message, sender));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -152,7 +152,7 @@ public abstract class ComAgent {
         agentStatistics.getStopWatch().resume();
         while (!mailbox.isEmpty()) {
             try {
-                TrackableObjectSim to = mailbox.remove();
+                TrackableObject to = mailbox.remove();
                 onReceive(to.getObject(), to.getTrack());
             } catch (Exception e) {
                 e.printStackTrace();
