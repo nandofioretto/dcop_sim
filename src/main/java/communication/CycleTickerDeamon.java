@@ -32,7 +32,7 @@ public class CycleTickerDeamon /*extends ComAgent*/ {
             // compute cost
             System.out.println("Cycle: " + currentCycle);
             //DCOPinfo.leaderAgent.getAgentStatistics().setSolutionCostIter(getProblemCost())
-            System.out.println(getProblemCost());
+            //System.out.println(getProblemCost());
             currentCycle ++;
             agentsTerminatedCurrentCycle.clear();
 

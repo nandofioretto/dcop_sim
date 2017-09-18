@@ -110,7 +110,7 @@ public class Spawner {
             actor.tell(new Message.StartSignal(), ComAgent.noSender());
         }
 
-        while(DCOPinfo.cycleTickerDeamon.getCurrentCycle() < 20) {
+        while(DCOPinfo.cycleTickerDeamon.getCurrentCycle() < nbIterations) {
             for (DCOPagent agt : yellowPages.values()) {
                 agt.run();
             }
